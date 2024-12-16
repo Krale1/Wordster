@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Worldster</title>
+    <title>Wordster</title>
     <style>
       * {
         margin: 0;
@@ -103,25 +103,28 @@
       #message {
         margin-top: 10px;
       }
+
+      #answer-container {
+        margin-top: 20px;
+        font-size: 1.2rem;
+        color: #ffeb3b;
+      }
     </style>
   </head>
   <body>
-    <!-- Welcome Screen -->
     <div id="welcome" class="container active">
-      <h1>Welcome to Worldster!</h1>
+      <h1>Welcome to Wordster!</h1>
       <button onclick="navigateTo('name-page')">Start Game</button>
     </div>
 
-    <!-- Name Input Screen -->
     <div id="name-page" class="container">
       <h1>Enter Your Name</h1>
       <input id="player-name" type="text" placeholder="Your Name" />
       <button onclick="startGame()">Continue</button>
     </div>
 
-    <!-- Game Screen -->
     <div id="game-page" class="container">
-      <h1 id="game-title">Worldster</h1>
+      <h1 id="game-title">Wordster</h1>
       <div id="grid-container" class="grid"></div>
       <input
         id="word-input"
@@ -131,6 +134,7 @@
       />
       <button id="submit-btn">Submit</button>
       <p id="message"></p>
+      <p id="answer-container"></p> 
     </div>
 
     <script>
@@ -142,6 +146,7 @@
       const wordInput = document.getElementById("word-input");
       const submitBtn = document.getElementById("submit-btn");
       const message = document.getElementById("message");
+      const answerContainer = document.getElementById("answer-container"); 
       let playerName = "";
       let row = 0;
 
@@ -172,21 +177,29 @@
       }
 
       async function checkWord(word) {
-        // Mock API call
-        const secretWord = "krale";
-        const feedback = { feedback: [], win: false, secret_word: secretWord };
+        try {
+          const response = await fetch("/check_word", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ word }),
+          });
 
-        for (let i = 0; i < 5; i++) {
-          if (word[i] === secretWord[i]) {
-            feedback.feedback.push("correct");
-          } else if (secretWord.includes(word[i])) {
-            feedback.feedback.push("present");
-          } else {
-            feedback.feedback.push("absent");
+          if (!response.ok) {
+            const errorData = await response.json();
+            message.textContent = errorData.error || "Error checking word.";
+            return { feedback: [], win: false, secret_word: "" }; 
           }
+
+          const data = await response.json();
+          console.log(data);  
+          return data; 
+        } catch (error) {
+          console.error("Error:", error);
+          message.textContent = "Something went wrong. Please try again.";
+          return { feedback: [], win: false, secret_word: "" }; 
         }
-        feedback.win = word === secretWord;
-        return feedback;
       }
 
       async function handleSubmit() {
@@ -219,7 +232,12 @@
         } else {
           row++;
           if (row === 6) {
-            message.textContent = "Game over! The word was: " + feedback.secret_word;
+            message.textContent = `Game over! The correct word was: ${
+              feedback.secret_word || "Unknown"
+            }`;
+            answerContainer.textContent = `The correct word was: ${
+              feedback.secret_word || "Unknown"
+            }`;
             submitBtn.disabled = true;
             wordInput.disabled = true;
           }

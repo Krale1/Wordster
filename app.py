@@ -1,10 +1,21 @@
 from flask import Flask, render_template, jsonify, request
 import random
+from functools import wraps
 
 app = Flask(__name__)
 
 WORDLIST = ["apple", "brain", "crane", "drain", "eagle"]
-SECRET_WORD = random.choice(WORDLIST)  
+SECRET_WORD = random.choice(WORDLIST)
+
+
+def validate_word(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        user_word = request.json.get("word", "").lower()
+        if len(user_word) != 5:
+            return jsonify({"error": "Word must be 5 letters long."}), 400
+        return func(user_word, *args, **kwargs)
+    return wrapper
 
 
 @app.route("/")
@@ -13,11 +24,8 @@ def index():
 
 
 @app.route("/check_word", methods=["POST"])
-def check_word():
-    user_word = request.json.get("word", "").lower()
-    if len(user_word) != 5:
-        return jsonify({"error": "Word must be 5 letters long."}), 400
-
+@validate_word
+def check_word(user_word):
     feedback = []
     for i, char in enumerate(user_word):
         if char == SECRET_WORD[i]:
@@ -28,9 +36,8 @@ def check_word():
             feedback.append("absent")
 
     win = user_word == SECRET_WORD
-    return jsonify({"feedback": feedback, "win": win})
+    return jsonify({"feedback": feedback, "win": win, "secret_word": SECRET_WORD})
 
 
-if __name__ == '__main':
+if __name__ == '__main__':
     app.run(debug=True)
-    
