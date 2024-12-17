@@ -4,9 +4,13 @@ from functools import wraps
 
 app = Flask(__name__)
 
-WORDLIST = ["apple", "brain", "crane", "drain", "eagle"]
-SECRET_WORD = random.choice(WORDLIST)
+def load_words_from_file(filename):
+    with open(filename, "r") as file:
+        words = [line.strip().lower() for line in file.readlines()]
+    return words
 
+WORDLIST = load_words_from_file("words.txt")
+SECRET_WORD = random.choice(WORDLIST)
 
 def validate_word(func):
     @wraps(func)
@@ -17,11 +21,9 @@ def validate_word(func):
         return func(user_word, *args, **kwargs)
     return wrapper
 
-
 @app.route("/")
 def index():
     return render_template("index.html")
-
 
 @app.route("/check_word", methods=["POST"])
 @validate_word
@@ -37,7 +39,6 @@ def check_word(user_word):
 
     win = user_word == SECRET_WORD
     return jsonify({"feedback": feedback, "win": win, "secret_word": SECRET_WORD})
-
 
 if __name__ == '__main__':
     app.run(debug=True)
