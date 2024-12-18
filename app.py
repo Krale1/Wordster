@@ -5,12 +5,11 @@ from functools import wraps
 app = Flask(__name__)
 
 def load_words_from_file(filename):
-    with open(filename, "r") as file:
+    with open(filename, "r", encoding="utf-8") as file:
         words = [line.strip().lower() for line in file.readlines()]
     return words
 
 WORDLIST = load_words_from_file("words.txt")
-SECRET_WORD = random.choice(WORDLIST)
 
 def validate_word(func):
     @wraps(func)
@@ -23,6 +22,8 @@ def validate_word(func):
 
 @app.route("/")
 def index():
+    global SECRET_WORD
+    SECRET_WORD = random.choice(WORDLIST)
     return render_template("index.html")
 
 @app.route("/check_word", methods=["POST"])
